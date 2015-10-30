@@ -43,35 +43,6 @@ diagonal -> %s
 lower -> %s
 '''%(self.__class__,sizestr,self.upper,self.diagonal,self.lower)
 
-    def __get_uv__(self,du,dl):
-        '''
-        get u,v vectors,
-        the inversion of A is:
-            inv(A) = [u1v1/2, u1v2 ... u1vn] + h.c.
-                     [    , u2v2/2 ... u2vn]
-                     [         ...         ]
-                     [         ...   unvn/2]
-
-        du/dl:
-            the diagonal part of UDL and LDU decomposition.
-        '''
-        n=self.n
-        #get vl
-        bupper=-self.upper
-        vi=1./du[0]
-        vl=[vi]
-        for i in xrange(1,n):
-            vi=vi*bupper[i-1]/du[i]
-            vl.append(vi)
-        #get ul
-        ui=1./dl[n-1]/vl[-1]
-        ul=[ui]
-        for i in xrange(n-2,-1,-1):
-            ui=ui*bupper[i]/dl[i]
-            ul.append(ui)
-        ul.reverse()
-        return array(ul),array(vl)
-
     @property
     def p(self):
         '''block size.'''
@@ -276,3 +247,33 @@ def get_trid(n,p=None,fill=None,herm=False):
     else:
         ll=agen([n-1,p,p])+1j*agen([n-1,p,p])
     return BlockTridMatrix(dl,upper=ul,lower=ll)
+
+def build_sr(ll=None,dl=None,ul=None):
+    '''
+    build a bsr or csr matrix by lower/diagonal/upper part of a tridiagonal matrix.
+    '''
+    nzarr=None
+    for i,il in enumerate([ll,ul,dl]):
+        if il is not None:
+            nzarr=il
+            n=len(il)+1 if i!=2 else len(il)
+            break
+    if nzarr is None:
+        raise ValueError('At least one of ll,dl,ul should be nonzeros!')
+    is_scalar=ndim(nzarr)==1
+    p=1 if is_scalar else nzarr.shape[-1]
+    if is_scalar:
+        mgen=csr_matrix
+        nullval=zeros(0)
+    else:
+        mgen=bsr_matrix
+        nullval=zeros([0,p,p])
+    indx_d=arange(n)
+    indx=concatenate([[] if dl is None else indx_d,[] if ll is None else indx_d[1:],[] if ul is None else indx_d[:-1]],axis=0)
+    indy=concatenate([[] if dl is None else indx_d,[] if ll is None else indx_d[:-1],[] if ul is None else indx_d[1:]],axis=0)
+    data=concatenate([nullval if dl is None else dl,nullval if ll is None else ll,nullval if ul is None else ul],axis=0)
+    odl=argsort(indx)
+    L=mgen((data[odl],indy[odl],ind2ptr(indx[odl],n)),dtype=nzarr.dtype)
+    return L
+
+

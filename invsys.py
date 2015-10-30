@@ -77,6 +77,11 @@ class BTInvSystem(InvSystem):
         self.ll_gt,self.hl_gt,self.ul_gt,self.invhl_gt=seq_gt
         self.ll_eq,self.hl_eq,self.ul_eq,self.invhl_eq=seq_eq
 
+    @property
+    def is_scalar(self):
+        '''return True if is scalar.'''
+        return ndim(self.hl_lt)==1
+
     def __get_L__(self,i,j):
         '''get L(i,j)'''
         if i<j:
@@ -121,7 +126,10 @@ class BTInvSystem(InvSystem):
     @property
     def p(self):
         '''the block size'''
-        return shape(self.hl_eq)[-1]
+        if self.is_scalar:
+            return 1
+        else:
+            return shape(self.hl_eq)[-1]
 
     def get_twist_LU(self,j):
         '''
@@ -139,13 +147,13 @@ class BTInvSystem(InvSystem):
             L[i,i]=self.__get_H__(i,j)
             U[i,i]=I
             if i<j:
-                L[i+1,i]=-self.__get_L__(i+1,j)
-                U[i,i+1]=-self.__get_U__(i,j)
+                L[i+1,i]=self.__get_L__(i,j)
+                U[i,i+1]=self.__get_U__(i,j)
             elif i>j:
-                L[i-1,i]=-self.__get_L__(i,j)
-                U[i,i-1]=-self.__get_U__(i-1,j)
-        L=sbmat(L).toarray()
-        U=sbmat(U).toarray()
+                L[i-1,i]=self.__get_L__(i-1,j-1)
+                U[i,i-1]=self.__get_U__(i-1,j-1)
+        L=sbmat(L)
+        U=sbmat(U)
         return L,U
 
     def get_item(self,i,j):
@@ -158,9 +166,9 @@ class BTInvSystem(InvSystem):
         if i==j:
             return self.__get_invH__(i,j)
         elif i<j:
-            return self.__get_U__(i,j).dot(self.__get_item__(i+1,j))
+            return dot(-self.__get_U__(i,j),self.__get_item__(i+1,j))
         else:
-            return self.__get_U__(i-1,j).dot(self.__get_item__(i-1,j))
+            return dot(-self.__get_U__(i-1,j),self.__get_item__(i-1,j))
 
     def get_col(self,j):
         '''
@@ -174,11 +182,11 @@ class BTInvSystem(InvSystem):
         ci=cjj
         n=len(self.hl_eq)
         for i in xrange(j+1,n):
-            ci=self.__get_U__(i-1,j).dot(ci)
+            ci=dot(-self.__get_U__(i-1,j),ci)
             cl.append(ci)
         ci=cjj
         for i in xrange(j-1,-1,-1):
-            ci=self.__get_U__(i,j).dot(ci)
+            ci=dot(-self.__get_U__(i,j),ci)
             cl.insert(0,ci)
         return cl
 
@@ -190,7 +198,10 @@ class BTInvSystem(InvSystem):
         m=[]
         for j in xrange(n):
             m.append(self.get_col(j))
-        m=transpose(m,axes=(1,2,0,3)).reshape([n*p,n*p])
+        if self.is_scalar:
+            m=transpose(m)
+        else:
+            m=transpose(m,axes=(1,2,0,3)).reshape([n*p,n*p])
         return m
 
 

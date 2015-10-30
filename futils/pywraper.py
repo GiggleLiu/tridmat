@@ -50,7 +50,10 @@ def get_tlu_seq(al,bl,cl,which=None):
     '''
     is_scalar=ndim(al)==1
     if which is None:
-        return fget_tlu_seq(cl=cl,bl=bl,al=al)
+        if is_scalar:
+            return fget_tlu_seqs1(cl=cl,bl=bl,al=al)
+        else:
+            return fget_tlu_seqsn(cl=cl,bl=bl,al=al)
     elif which=='<':
         which=1
     elif which=='>':
@@ -63,7 +66,7 @@ def get_tlu_seq(al,bl,cl,which=None):
     else:
         return fget_tlu_seqn(cl=cl,bl=bl,al=al,which=which)
 
-def get_uv(du,dl,invdu=None,invdl=None):
+def get_uv(invdu,invdl,al,cl):
     '''
     get u,v vectors defining inversion,
     the inversion of A is:
@@ -72,22 +75,20 @@ def get_uv(du,dl,invdu=None,invdl=None):
                  [         ...         ]
                  [         ...   unvn/2]
     
-    du/dl/invdu/invdl:
-        the diagonal part of UDL and LDU decomposition and their inversion.
-    cl:
-        the upper part of tridiagonal matrix.
+    invdu/invdl:
+        the diagonal part of UDL and LDU decomposition
+    al/cl:
+        the lower/upper part of tridiagonal matrix.
     
     *return*:
     ul,vl:
         the u,v vectors defining inversion of a matrix.
     '''
-    is_scalar=ndim(du)==1
+    is_scalar=ndim(invdu)==1
     if is_scalar:
-        return fget_uv(dl=dl,du=du)
+        return fget_uv(invdl=invdl,invdu=invdu,cl=cl)
     else:
-        if invdu is None: invdu=inv(du)
-        if invdl is None: invdl=inv(du)
-        return fget_uvn(dl=dl,du=du,invdu=invdu,invdl=invdl)
+        return fget_uvn(invdu=invdu,invdl=invdl,cl=cl)
 
 def get_dl(al,bl,cl,order):
     '''

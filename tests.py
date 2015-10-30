@@ -55,7 +55,7 @@ def test_lu(n,p):
     pdb.set_trace()
 
 def test_inv(n,p):
-    tm=get_trid(n,p)
+    tm=get_trid(n,p,herm=True)
     tmr=tm.tocoo().tocsc()
     tma=tmr.toarray()
     print 'checking for inv'
@@ -87,8 +87,22 @@ def test_dataparse():
     spstrid=smat.tobsr()
     print arrtrid-spstrid
 
+def test_tLU(n,p):
+    tm=get_trid(n,p,herm=True)
+    tmr=tm.tocoo().tocsc()
+    tma=tmr.toarray()
+    print 'checking for twist LU decomposition'
+    t0=time.time()
+    invegn=lin.get_inv_system(tm)
+    L,U=invegn.get_twist_LU(j=2)
+    t1=time.time()
+    diff=abs(L.dot(U)-tmr).sum()
+    print 'err -> %s, Elapse -> %s'%(diff,t1-t0)
+    pdb.set_trace()
+
 
 if __name__=='__main__':
-    test_lu(500,None)
-    #test_inv(200,None)
-    #test_dataparse()
+    #test_lu(500,None)
+    #test_inv(200,2)
+    test_dataparse()
+    #test_tLU(200,None)

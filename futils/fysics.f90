@@ -297,7 +297,7 @@ SUBROUTINE zdet(N,A,RES)
     RETURN
 END SUBROUTINE zdet
 
-!get the sequences of twisted LU decomposition for tridiagonal block matrix.
+!get the sequences of twisted LU decomposition for tridiagonal `Block` matrix.
 !A=LU.
 !reference -> http://dx.doi.org/10.1016/j.amc.2005.11.098
 
@@ -307,11 +307,13 @@ END SUBROUTINE zdet
 
 !return:
 !(ll1,ll1,ll1,ul2,ul2,ul2,hl3,hl3,hl3,invhl1,invhl2,invhl3), they are sequences defining L,U
-subroutine fget_tlu_seq(al,bl,cl,ll1,ll2,ll3,ul1,ul2,ul3,hl1,hl2,hl3,invhl1,invhl2,invhl3,n,p)
+subroutine fget_tlu_seqsn(al,bl,cl,ll1,ll2,ll3,ul1,ul2,ul3,hl1,hl2,hl3,invhl1,invhl2,invhl3,n,p)
     implicit none
     integer,intent(in) :: n,p
-    complex*16,intent(in),dimension(n,p,p) :: al,bl,cl
-    complex*16,intent(out),dimension(n,p,p) :: ll1,ll2,ll3,ul1,ul2,ul3,hl1,hl2,hl3,invhl1,invhl2,invhl3
+    complex*16,intent(in),dimension(n,p,p) :: bl
+    complex*16,intent(in),dimension(n-1,p,p) :: al,cl
+    complex*16,intent(out),dimension(n,p,p) :: hl1,hl2,hl3,invhl1,invhl2,invhl3
+    complex*16,intent(out),dimension(n-1,p,p) :: ll1,ll2,ll3,ul1,ul2,ul3
     complex*16,dimension(p,p) :: bi,hi,ui,invhi
     integer :: i
     
@@ -324,13 +326,13 @@ subroutine fget_tlu_seq(al,bl,cl,ll1,ll2,ll3,ul1,ul2,ul3,hl1,hl2,hl3,invhl1,invh
         bi=bl(i,:,:)
         hi=bi
         if(i/=1) then
-            hi=hi-matmul(ll1(i,:,:),ui)
+            hi=hi-matmul(ll1(i-1,:,:),ui)
         endif
         invhi=hi
         call zinv(p,invhi)
         hl1(i,:,:)=hi
         invhl1(i,:,:)=invhi
-        ui=matmul(invhi,cl(i+1,:,:))
+        ui=matmul(invhi,cl(i,:,:))
         ul1(i,:,:)=ui
     enddo
     !sequence for i > j
@@ -338,13 +340,13 @@ subroutine fget_tlu_seq(al,bl,cl,ll1,ll2,ll3,ul1,ul2,ul3,hl1,hl2,hl3,invhl1,invh
     do i=n,2,-1
         hi=bl(i,:,:)
         if(i/=n) then
-            hi=hi-matmul(ll2(i+1,:,:),ui)
+            hi=hi-matmul(ll2(i,:,:),ui)
         endif
         invhi=hi
         call zinv(p,invhi)
         hl2(i,:,:)=hi
         invhl2(i,:,:)=invhi
-        ui=matmul(invhi,al(i,:,:))
+        ui=matmul(invhi,al(i-1,:,:))
         ul2(i-1,:,:)=ui
     enddo
     !sequence for i == j
@@ -352,19 +354,87 @@ subroutine fget_tlu_seq(al,bl,cl,ll1,ll2,ll3,ul1,ul2,ul3,hl1,hl2,hl3,invhl1,invh
     do i=1,n
         hi=bl(i,:,:)
         if(i/=1) then
-            hi=hi-matmul(ll3(i,:,:),ul1(i-1,:,:))
+            hi=hi-matmul(ll3(i-1,:,:),ul1(i-1,:,:))
         endif
         if(i/=n) then
-            ui=matmul(invhl2(i+1,:,:),al(i+1,:,:))
+            ui=matmul(invhl2(i+1,:,:),al(i,:,:))
             ul3(i,:,:)=ui
-            hi=hi-matmul(ll2(i+1,:,:),ui)
+            hi=hi-matmul(ll2(i,:,:),ui)
         endif
         hl3(i,:,:)=hi
         invhi=hi
         call zinv(p,invhi)
         invhl3(i,:,:)=invhi
     enddo
-end subroutine fget_tlu_seq
+end subroutine fget_tlu_seqsn
+
+!get the sequences of twisted LU decomposition for tridiagonal `Scalar` matrix.
+!A=LU.
+!reference -> http://dx.doi.org/10.1016/j.amc.2005.11.098
+
+!input:
+!al/bl/cl
+!the lower diagonal/diagonal/upper diagonal part of matrix.
+
+!return:
+!(ll1,ll1,ll1,ul2,ul2,ul2,hl3,hl3,hl3,invhl1,invhl2,invhl3), they are sequences defining L,U
+subroutine fget_tlu_seqs1(al,bl,cl,ll1,ll2,ll3,ul1,ul2,ul3,hl1,hl2,hl3,invhl1,invhl2,invhl3,n)
+    implicit none
+    integer,intent(in) :: n
+    complex*16,intent(in),dimension(n) :: bl
+    complex*16,intent(in),dimension(n-1) :: al,cl
+    complex*16,intent(out),dimension(n-1) :: ll1,ll2,ll3,ul1,ul2,ul3
+    complex*16,intent(out),dimension(n) :: hl1,hl2,hl3,invhl1,invhl2,invhl3
+    complex*16 :: bi,hi,ui,invhi
+    integer :: i
+    
+    !f2py intent(in) :: n,al,bl,cl
+    !f2py intent(out) :: ll1,ll2,ll3,ul1,ul2,ul3,hl1,hl2,hl3,invhl1,invhl2,invhl3
+
+    !sequence for i < j
+    ll1=al
+    do i=1,n-1
+        bi=bl(i)
+        hi=bi
+        if(i/=1) then
+            hi=hi-ll1(i-1)*ui
+        endif
+        invhi=1D0/hi
+        hl1(i)=hi
+        invhl1(i)=invhi
+        ui=invhi*cl(i)
+        ul1(i)=ui
+    enddo
+    !sequence for i > j
+    ll2=cl
+    do i=n,2,-1
+        hi=bl(i)
+        if(i/=n) then
+            hi=hi-ll2(i)*ui
+        endif
+        invhi=1D0/hi
+        hl2(i)=hi
+        invhl2(i)=invhi
+        ui=invhi*al(i-1)
+        ul2(i-1)=ui
+    enddo
+    !sequence for i == j
+    ll3=ll1
+    do i=1,n
+        hi=bl(i)
+        if(i/=1) then
+            hi=hi-ll3(i-1)*ul1(i-1)
+        endif
+        if(i/=n) then
+            ui=invhl2(i+1)*al(i)
+            ul3(i)=ui
+            hi=hi-ll2(i)*ui
+        endif
+        hl3(i)=hi
+        invhi=1D0/hi
+        invhl3(i)=invhi
+    enddo
+end subroutine fget_tlu_seqs1
 
 !get the sequences of twisted LU decomposition for `Block!` tridiagonal block matrix, the one by one version.
 !A=LU.
@@ -590,38 +660,38 @@ end subroutine fget_dln
 !             [         ...   unvn/2]
 !
 !input
-!du/dl:
-!    the diagonal part of UDL and LDU decomposition.
+!invdu/invdl:
+!    the inverse of diagonal part of UDL and LDU decomposition.
 !cl:
 !    the upper part of tridiagonal matrix.
 !
 !output
 !ul,vl:
 !    the u,v vectors defining inversion of a matrix.
-subroutine fget_uv(du,dl,cl,ul,vl,n)
+subroutine fget_uv(invdu,invdl,cl,ul,vl,n)
     implicit none
     integer,intent(in) :: n
-    complex*16,intent(in),dimension(n) :: du,dl
+    complex*16,intent(in),dimension(n) :: invdu,invdl
     complex*16,intent(in),dimension(n-1) :: cl
     complex*16,intent(out),dimension(n) :: ul,vl
     complex*16 :: ui,vi
     integer :: i
     
-    !f2py intent(in) :: n,du,dl,cl
+    !f2py intent(in) :: n,invdu,invdl,cl
     !f2py intent(out) :: ul,vl
 
     !get vl
-    vi=1D0/du(1)
+    vi=1D0*invdu(1)
     vl(1)=vi
-    do i=1,n
-        vi=vi*cl(i-1)/du(i)
+    do i=2,n
+        vi=-vi*cl(i-1)*invdu(i)
         vl(i)=vi
     enddo
     !get ul
-    ui=1./dl(n-1)/vl(n)
+    ui=invdl(n)/vl(n)
     ul(n)=ui
     do i=n-1,1,-1
-        ui=ui*cl(i)/dl(i)
+        ui=-ui*cl(i)*invdl(i)
         ul(i)=ui
     enddo
 end subroutine fget_uv
@@ -635,8 +705,8 @@ end subroutine fget_uv
 !             [         ...   unvn/2]
 !
 !input
-!du/dl:
-!    the diagonal part of UDL and LDU decomposition.
+!invdu/invdl:
+!    the inverse of diagonal part of UDL and LDU decomposition.
 !cl:
 !    the upper part of tridiagonal matrix.
 !
