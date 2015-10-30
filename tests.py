@@ -37,18 +37,20 @@ def test_lu(n,p):
 
     print 'checking for UDL decomposition.'
     t0=time.time()
-    U,D,L=lin.udl(tm)
+    udlsys=lin.triudl(tm)
+    U,D,L=udlsys.U,udlsys.D,udlsys.L
     t1=time.time()
     U,D3,L=U.tocsr(),D.tocsc(),L.tocsc()
-    udl=U.dot(sinv(D3)).dot(L)
+    udl=U.dot(D3).dot(L)
     print 'err -> %s, Elapse -> %s'%(abs(udl-tmr).sum(),t1-t0)
 
     print 'checking for LDU decomposition.'
     t0=time.time()
-    L,D,U=lin.ldu(tm)
+    ldusys=lin.trildu(tm)
+    L,D,U=ldusys.L,ldusys.D,ldusys.U
     t1=time.time()
     L,D4,U=L.tocsr(),D.tocsc(),U.tocsc()
-    ldu=L.dot(sinv(D4)).dot(U)
+    ldu=L.dot(D4).dot(U)
     print 'err -> %s, Elapse -> %s'%(abs(ldu-tmr).sum(),t1-t0)
     pdb.set_trace()
 
@@ -87,6 +89,6 @@ def test_dataparse():
 
 
 if __name__=='__main__':
-    test_lu(500,2)
+    test_lu(500,None)
     #test_inv(200,None)
     #test_dataparse()

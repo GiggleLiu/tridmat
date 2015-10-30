@@ -96,14 +96,14 @@ def get_dl(al,bl,cl,order):
     al/bl/cl:
         the lower,diagonal,upper part of tridiagonal matrix
     order:
-        `ldu` -> LDU
-        `udl` -> UDL
+        `LDU` -> LDU
+        `UDL` -> UDL
 
     *return*:
         the diagonal part of ldu/udl decomposition and it's inversion
     '''
-    assert(order=='udl' or order=='ldu')
-    udl=True if order=='udl' else False
+    assert(order=='UDL' or order=='LDU')
+    udl=order=='UDL'
     is_scalar=ndim(al)==1
     if is_scalar:
         dl=fget_dl(al=al,bl=bl,cl=cl,udl=udl)

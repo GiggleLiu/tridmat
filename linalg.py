@@ -38,86 +38,34 @@ def triul(tridmat):
     ll,ul,hl,invhl=get_tlu_seq(al=al,bl=bl,cl=cl,which='>')
     return TLUSystem(ll=ul,ul=ll,hl=hl,invhl=invhl,order='UL')
 
-def ldu(tridmat,py=False):
+def trildu(tridmat):
     '''
     get the LDU decomposition, A=LD^{-1}L^\dag
 
     tridmat:
         the tridiagonal matrix.
-    py:
-        run the python version.
 
     *return*:
         L = diag(dl)+lowerdiag(tridmat.lower)
         D = diag(dl)
     '''
-    n=tridmat.n
-    if py:
-        dl=tridmat.__get_dl__(udl=False)
-    else:
-        dl,invdl=get_dl(tridmat.lower,tridmat.diagonal,tridmat.upper,order='ldu')
-    if not tridmat.is_scalar:
-        L=ndarray((n,n),dtype='O')
-        U=ndarray((n,n),dtype='O')
-        D=block_diag(dl)
-        for i in xrange(n):
-            U[i,i]=dl[i]
-            L[i,i]=dl[i]
-            if i!=0:
-                L[i,i-1]=tridmat.lower[i-1]
-                U[i-1,i]=tridmat.upper[i-1]
-        return sbmat(L),D,sbmat(U)
-    else:
-        indx_d=arange(tridmat.n)
-        indx_u=concatenate([indx_d,indx_d[:-1]])
-        indy_u=concatenate([indx_d,indx_d[1:]])
-        indx_l=concatenate([indx_d,indx_d[1:]])
-        indy_l=concatenate([indx_d,indx_d[:-1]])
-        data_u=concatenate([dl,tridmat.upper])
-        data_l=concatenate([dl,tridmat.lower])
-        D=coo_matrix((dl,(indx_d,indx_d)))
-        U=coo_matrix((data_u,(indx_u,indy_u)),dtype=tridmat.upper.dtype)
-        L=coo_matrix((data_l,(indx_l,indy_l)),dtype=tridmat.lower.dtype)
-        return L,D,U
+    dl,invdl=get_dl(al=tridmat.lower,bl=tridmat.diagonal,cl=tridmat.upper,order='LDU')
+    res=TLUSystem(hl=dl,invhl=invdl,ll=tridmat.lower,ul=tridmat.upper,order='LDU')
+    return res
 
-def udl(tridmat,py=False):
+def triudl(tridmat):
     '''
     get the UDL decomposition, A=UD^{-1}U^\dag
 
     tridmat:
         the tridiagonal matrix.
-    py:
-        run the python version.
 
     *return*:
         U = diag(dl)+upperdiag(tridmat.upper)
         D = diag(dl)
     '''
-    n=tridmat.n
-    dl,invdl=get_dl(al=tridmat.lower,bl=tridmat.diagonal,cl=tridmat.upper,order='udl')
-    if not tridmat.is_scalar:
-        U=ndarray((n,n),dtype='O')
-        L=ndarray((n,n),dtype='O')
-        D=block_diag(dl)
-        for i in xrange(n):
-            U[i,i]=dl[i]
-            L[i,i]=dl[i]
-            if i!=n-1:
-                U[i,i+1]=tridmat.upper[i]
-                L[i+1,i]=tridmat.lower[i]
-        return sbmat(U),D,sbmat(L)
-    else:
-        indx_d=arange(tridmat.n)
-        indx_u=concatenate([indx_d,indx_d[:-1]])
-        indy_u=concatenate([indx_d,indx_d[1:]])
-        indx_l=concatenate([indx_d,indx_d[1:]])
-        indy_l=concatenate([indx_d,indx_d[:-1]])
-        data_u=concatenate([dl,tridmat.upper])
-        data_l=concatenate([dl,tridmat.lower])
-        D=coo_matrix((dl,(indx_d,indx_d)))
-        U=coo_matrix((data_u,(indx_u,indy_u)),dtype=tridmat.upper.dtype)
-        L=coo_matrix((data_l,(indx_l,indy_l)),dtype=tridmat.lower.dtype)
-        return U,D,L
+    dl,invdl=get_dl(al=tridmat.lower,bl=tridmat.diagonal,cl=tridmat.upper,order='UDL')
+    return TLUSystem(hl=dl,invhl=invdl,ll=tridmat.lower,ul=tridmat.upper,order='UDL')
 
 def get_inv_system(tridmat,py=False):
     '''

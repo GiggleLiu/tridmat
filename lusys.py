@@ -3,8 +3,9 @@
 The LU Decomposition system for tridiagonal matrix.
 '''
 from numpy import *
+from numpy.linalg import inv
 from scipy.sparse import bmat as sbmat
-from scipy.sparse import bsr_matrix,csr_matrix
+from scipy.sparse import bsr_matrix,csr_matrix,block_diag
 from futils.pywraper import ind2ptr
 import pdb,time
 
@@ -18,7 +19,7 @@ class TLUSystem(object):
         `LU` or `UL`
     '''
     def __init__(self,ll,ul,hl,invhl,order):
-        assert(order=='LU' or order=='UL')
+        assert(order in ['LU','UL','LDU','UDL'])
         self.ll=ll
         self.hl=hl
         self.ul=ul
@@ -61,7 +62,7 @@ class TLUSystem(object):
                 data_l=concatenate([ones(n),ll])
             else:
                 data_l=concatenate([[identity(p)]*n,ll])
-        else:
+        elif self.order=='LU' or self.order=='UDL' or self.order=='LDU':
             data_l=concatenate([self.hl,ll])
         odl=argsort(indx_l)
         L=mgen((data_l[odl],indy_l[odl],ind2ptr(indx_l[odl],n)),dtype=ll.dtype)
@@ -88,9 +89,22 @@ class TLUSystem(object):
                 data_u=concatenate([ones(n),ul])
             else:
                 data_u=concatenate([[identity(p)]*n,ul])
-        else:
+        elif self.order=='UL' or self.order=='UDL' or self.order=='LDU':
             data_u=concatenate([self.hl,ul])
         odu=argsort(indx_u)
         U=mgen((data_u[odu],indy_u[odu],ind2ptr(indx_u[odu],n)),dtype=ul.dtype)
         return U
 
+    @property
+    def D(self):
+        '''
+        The diagonal part of LDU or UDL decomposition.
+        '''
+        if self.order=='LU' or self.order=='UL':
+            return None
+        if self.invhl is None:
+            if self.is_scalar:
+                self.invhl=1./self.hl
+            else:
+                self.invhl=inv(self.hl)
+        return block_diag(self.invhl)

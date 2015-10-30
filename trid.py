@@ -43,39 +43,6 @@ diagonal -> %s
 lower -> %s
 '''%(self.__class__,sizestr,self.upper,self.diagonal,self.lower)
 
-    def __get_dl__(self,udl):
-        '''
-        get the diagonal part of UDL decomposition.
-
-        udl:
-            decompose as UDL if True else LDU
-        '''
-        n=self.n
-        is_scalar=self.is_scalar
-        al=self.diagonal #diagonal part
-        ul=self.upper
-        ll=self.lower
-        if is_scalar:
-            cinv=lambda x:1./x
-        else:
-            cinv=inv
-        if udl:
-            al=al[::-1]
-            ll=ll[::-1]
-            ul=ul[::-1]
-        dl=[]
-        di=al[0]
-        dl.append(di)
-        for i in xrange(n-1):
-            if udl:
-                di=al[i+1]-dot(ul[i],dot(cinv(di),ll[i]))
-            else:
-                di=al[i+1]-dot(ll[i],dot(cinv(di),ul[i]))
-            dl.append(di)
-        if udl:
-            dl.reverse()
-        return array(dl)
-
     def __get_uv__(self,du,dl):
         '''
         get u,v vectors,
