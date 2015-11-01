@@ -10,7 +10,6 @@ from scipy.sparse import bmat as sbmat
 from scipy.sparse import bsr_matrix,csr_matrix,block_diag
 from futils.pywraper import ind2ptr
 from trid import build_sr
-import pdb,time
 
 class TLUSystem(object):
     '''

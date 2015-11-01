@@ -15,8 +15,6 @@ from scipy.sparse import bmat as sbmat
 from scipy.sparse.linalg import inv as sinv
 from numpy.linalg import inv
 from futils.pywraper import ind2ptr,get_tlu_seq,ptr2ind
-from matplotlib.pyplot import *
-import pdb,time
 
 class TridMatrix(object):
     '''

@@ -11,8 +11,6 @@ from lusys import TLUSystem
 from futils.pywraper import get_tlu_seq,ind2ptr,get_dl,get_uv
 from scipy.sparse import coo_matrix,bsr_matrix,csr_matrix,block_diag
 from scipy.sparse import bmat as sbmat
-import pylinalg as pylin
-import pdb,time
 
 def trilu(tridmat):
     '''

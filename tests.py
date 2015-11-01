@@ -9,7 +9,6 @@ import pdb,time
 from scipy.sparse.linalg import inv as sinv
 from scipy.sparse.linalg import splu
 from numpy.linalg import inv
-from matplotlib.pyplot import *
 
 def test_lu(n,p):
     tm=get_trid(n,p)

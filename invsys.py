@@ -10,7 +10,6 @@ In the following description, we take p -> the block dimension, N -> the matrix 
 '''
 from numpy import *
 from scipy.sparse import bmat as sbmat
-import pdb,time
 
 class InvSystem(object):
     '''
