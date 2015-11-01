@@ -1,7 +1,7 @@
 =======
 # tridmat
 
-This library provide fast linear algebra implementations for Scalar and Blcok Tridiagonal Matrices.
+This library provide fast linear algebra implementations for Scalar and Block Tridiagonal Matrices.
 
 They are:
 
@@ -21,7 +21,8 @@ The programming language is Python, with underlying fortran support.
 Tridiagonal Matrix, especially Block Tridiagonal Hermitian Matrices are frequently used data structure in physics.
 
 It can be intepreted as a Hamiltonian of a chain Model and layered structures.
-It's trivial implementation is the recursive Green's function method to get the surface Green's function, solve the Landauer formula to get the conductance.
+
+It's trivial implementation is the **recursive Green's function** method to get the surface Green's function, solve the **Landauer formula** to get the conductance.
 
 This package provide an elementwise view of Green's function for a general tridiagonal matrix, in the language of matrix theory.
 
