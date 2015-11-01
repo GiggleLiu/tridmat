@@ -1,6 +1,8 @@
 #!/usr/bin/python
 '''
-linear algebra for block and tridiagonal matrices.
+Linear algebra for block and tridiagonal matrices.
+
+In the following description, we take p -> the block dimension, N -> the matrix dimension and n = N/p.
 '''
 from numpy.linalg import inv
 from numpy import *
@@ -14,10 +16,15 @@ import pdb,time
 
 def trilu(tridmat):
     '''
-    get the LU decomposition for tridiagonal matrix, A=LU
+    Get the LU decomposition for tridiagonal matrix, A=LU
+
+    The complexity of this procedure is n*p^3.
+
+    trdmat:
+        A tridiagonal matrix, i.g. an instance of TridMatrix.
 
     *return*:
-        (L,U), lower diagonal and upper diagonal matrices.
+        A <TLUSystem> instance with order 'LU'.
     '''
     al=tridmat.lower
     bl=tridmat.diagonal
@@ -28,10 +35,12 @@ def trilu(tridmat):
 
 def triul(tridmat):
     '''
-    get the UL decomposition for tridiagonal matrix, A=UL
+    Get the UL decomposition for tridiagonal matrix, A=UL
+
+    The complexity of this procedure is n*p^3.
 
     *return*:
-        (U,L), upper diagonal and lower diagonal matrices.
+        A <TLUSystem> instance with order 'UL'.
     '''
     al=tridmat.lower
     bl=tridmat.diagonal
@@ -41,14 +50,15 @@ def triul(tridmat):
 
 def trildu(tridmat):
     '''
-    get the LDU decomposition, A=LD^{-1}L^\dag
+    Get the LDU decomposition, A=LD^{-1}L^\dag
 
-    tridmat:
-        the tridiagonal matrix.
+    The complexity of this procedure is n*p^3.
+
+    trdmat:
+        A tridiagonal matrix, i.g. an instance of TridMatrix.
 
     *return*:
-        L = diag(dl)+lowerdiag(tridmat.lower)
-        D = diag(dl)
+        A <TLUSystem> instance with order 'LDU'.
     '''
     dl,invdl=get_dl(al=tridmat.lower,bl=tridmat.diagonal,cl=tridmat.upper,order='LDU')
     res=TLUSystem(hl=dl,invhl=invdl,ll=tridmat.lower,ul=tridmat.upper,order='LDU')
@@ -56,14 +66,15 @@ def trildu(tridmat):
 
 def triudl(tridmat):
     '''
-    get the UDL decomposition, A=UD^{-1}U^\dag
+    Get the UDL decomposition, A=UD^{-1}U^\dag
+
+    The complexity of this procedure is n*p^3.
 
     tridmat:
-        the tridiagonal matrix.
+        The tridiagonal matrix.
 
     *return*:
-        U = diag(dl)+upperdiag(tridmat.upper)
-        D = diag(dl)
+        A <TLUSystem> instance with order 'UDL'.
     '''
     dl,invdl=get_dl(al=tridmat.lower,bl=tridmat.diagonal,cl=tridmat.upper,order='UDL')
     return TLUSystem(hl=dl,invhl=invdl,ll=tridmat.lower,ul=tridmat.upper,order='UDL')
@@ -73,13 +84,17 @@ def get_invh_system(tridmat):
     Get the inversion generator for `hermitian` tridiagonal matrix.
     The Fortran version and python version are provided for block tridiagonal matrix.
 
-    reference -> http://dx.doi.org/10.1016/j.amc.2005.11.098
+    The complexity of this procedure is N.
+    However, if you're going to generate the whole inversion elements through STInvSystem instance,
+    the complexity is N^2.
 
-    py:
-        python version prefered if True.
+    Reference -> http://dx.doi.org/10.1137/0613045
+
+    trdmat:
+        A tridiagonal matrix, i.g. an instance of TridMatrix.
 
     *return*:
-        Inv system instance.
+        A STInvSystem instance.
     '''
     if tridmat.is_scalar:
         du,invdu=get_dl(al=tridmat.lower,bl=tridmat.diagonal,cl=tridmat.upper,order='UDL')
@@ -95,20 +110,30 @@ def get_inv_system(tridmat):
     Get the inversion generator for tridiagonal matrix.
     The Fortran version and python version are provided for block tridiagonal matrix.
 
-    reference -> http://dx.doi.org/10.1016/j.amc.2005.11.098
+    The complexity of this procedure is n*p^3.
+    However, if you're going to generate the whole inversion elements through STInvSystem instance,
+    the complexity is n^2*p^3.
 
-    py:
-        python version prefered if True.
+    Reference -> http://dx.doi.org/10.1016/j.amc.2005.11.098
+
+    trdmat:
+        A tridiagonal matrix, i.g. an instance of TridMatrix.
 
     *return*:
-        Inv system instance.
+        a <BTInvSystem> instance.
     '''
     ll1,ll2,ll3,ul1,ul2,ul3,hl1,hl2,hl3,invhl1,invhl2,invhl3=get_tlu_seq(al=tridmat.lower,bl=tridmat.diagonal,cl=tridmat.upper)
     return BTInvSystem((ll1,hl1,ul1,invhl1),(ll2,hl2,ul2,invhl2),(ll3,hl3,ul3,invhl3))
 
 def tinv(tridmat):
     '''
-    get the inversion of this matrix.
+    Get the inversion of a tridiagonal matrix.
+
+    trdmat:
+        A tridiagonal matrix, i.g. an instance of TridMatrix.
+
+    *return*:
+        A two dimensional array, the inversion matrix of tridmat.
     '''
     invs=get_inv_system(tridmat)
     return invs.get_all()

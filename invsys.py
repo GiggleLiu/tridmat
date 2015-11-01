@@ -2,7 +2,11 @@
 '''
 quick inversion for specific element with tridiagonalized matrix.
 
-reference -> http://dx.doi.org/10.1137/0613045
+In the following description, we take p -> the block dimension, N -> the matrix dimension and n = N/p.
+
+*references*:
+    * http://dx.doi.org/10.1137/0613045
+    * http://dx.doi.org/10.1016/j.amc.2005.11.098
 '''
 from numpy import *
 from scipy.sparse import bmat as sbmat
@@ -10,20 +14,20 @@ import pdb,time
 
 class InvSystem(object):
     '''
-    Inversion generator for tridiagonal matrix.
+    The abstract interface of inversion generator for tridiagonal matrix.
     '''
-    def get_item(self,*args,**kwargs):
+    def get_item(self,i,j,*args,**kwargs):
         '''
-        get specific item of the inverse matrix.
+        Get specific item of the inverse matrix.
 
         i/j:
-            the row/column index.
+            The row/column index.
         '''
         raise Exception('Not Implemented')
 
     def get_all(self,*args,**kwargs):
         '''
-        get the inverse of matrix.
+        Get the inverse of matrix.
         '''
         raise Exception('Not Implemented')
 
@@ -32,7 +36,7 @@ class STInvSystem(InvSystem):
     Matrix Inversion Fast Generator for Scalar Tridiagonal Matrix.
 
     ul,vl:
-        the u,v vectors defining this inversion.
+        The u,v vectors defining this inversion.
     '''
     def __init__(self,ul,vl):
         self.ul=ul
@@ -40,15 +44,17 @@ class STInvSystem(InvSystem):
 
     @property
     def n(self):
-        '''the number of blocks.'''
+        '''The number of blocks.'''
         return len(self.ul)
 
     def get_item(self,i,j):
         '''
-        get specific item of the inverse matrix.
+        Get specific item of the inverse matrix.
 
         i/j:
-            the row/column index.
+            The row/column index.
+        *return*:
+            A number.
         '''
         if i<=j:
             return self.ul[i]*vl[j]
@@ -57,7 +63,10 @@ class STInvSystem(InvSystem):
 
     def get_all(self):
         '''
-        get the inverse of matrix.
+        Get the inverse of matrix.
+
+        *return*:
+            A (N x N) array.
         '''
         m=self.ul[:,newaxis].dot(self.vl[newaxis,:])
         m=triu(m)+triu(m,1).T.conj()
@@ -66,7 +75,7 @@ class STInvSystem(InvSystem):
 
 class BTInvSystem(InvSystem):
     '''
-    Matrix Inversion Fast Generator for Block Tridiagonal Matrix.
+    Fast Generator for the inversion of A Tridiagonal Matrix.
 
     seq_lt/seq_gt/seq_eq:
         sequence for i < j/i > j/i==j
@@ -79,11 +88,11 @@ class BTInvSystem(InvSystem):
 
     @property
     def is_scalar(self):
-        '''return True if is scalar.'''
+        '''True if functionning as scalar.'''
         return ndim(self.hl_lt)==1
 
     def __get_L__(self,i,j):
-        '''get L(i,j)'''
+        '''Get L(i,j)'''
         if i<j:
             return self.ll_lt[i]
         elif i>j:
@@ -92,7 +101,7 @@ class BTInvSystem(InvSystem):
             return self.ll_eq[i]
 
     def __get_H__(self,i,j):
-        '''get H(i,j)'''
+        '''Get H(i,j)'''
         if i<j:
             return self.hl_lt[i]
         elif i>j:
@@ -101,7 +110,7 @@ class BTInvSystem(InvSystem):
             return self.hl_eq[i]
 
     def __get_invH__(self,i,j):
-        '''get H(i,j)^{-1}'''
+        '''Get H(i,j)^{-1}'''
         if i<j:
             return self.invhl_lt[i]
         elif i>j:
@@ -110,7 +119,7 @@ class BTInvSystem(InvSystem):
             return self.invhl_eq[i]
 
     def __get_U__(self,i,j):
-        '''get U(i,j)'''
+        '''Get U(i,j)'''
         if i<j:
             return self.ul_lt[i]
         elif i>j:
@@ -120,12 +129,12 @@ class BTInvSystem(InvSystem):
 
     @property
     def n(self):
-        '''the number of blocks.'''
+        '''The number of blocks.'''
         return len(self.hl_eq)
 
     @property
     def p(self):
-        '''the block size'''
+        '''The block size'''
         if self.is_scalar:
             return 1
         else:
@@ -133,10 +142,15 @@ class BTInvSystem(InvSystem):
 
     def get_twist_LU(self,j):
         '''
-        get the twiest LU decomposition of the original matrix.
+        Get the twist LU decomposition of the original matrix.
+
+        For the definnition of twist LU decomposition, check the references of this module.
 
         j:
-            the twisting position.
+            The twisting position.
+
+        *return*:
+            (L,U), each of which is a (N x N) sparse matrix.
         '''
         n=self.n
         p=self.p
@@ -158,10 +172,13 @@ class BTInvSystem(InvSystem):
 
     def get_item(self,i,j):
         '''
-        get specific item of the inverse matrix.
+        Get specific item of the inverse matrix.
 
         i/j:
-            the row/column index.
+            The row/column index.
+
+        *return*:
+            Matrix element, A (p x p) array for block version or a number for scalar version.
         '''
         if i==j:
             return self.__get_invH__(i,j)
@@ -172,10 +189,14 @@ class BTInvSystem(InvSystem):
 
     def get_col(self,j):
         '''
-        get specific column of the inverse matrix.
+        Get the specific column of the inverse matrix.
 
         j:
-            the column index.
+            The column index.
+
+        *return*:
+            The specific column of the inversion of tridiagonal matrix,
+            An array of shape (n*p x p) for block version or (n) for scalar version.
         '''
         cjj=self.get_item(j,j)
         cl=[cjj]
@@ -192,7 +213,10 @@ class BTInvSystem(InvSystem):
 
     def get_all(self):
         '''
-        get the inverse of matrix.
+        Get the inverse of matrix.
+
+        *return*:
+            A (N x N) array.
         '''
         n,p=self.n,self.p
         m=[]

@@ -1,6 +1,13 @@
 #!/usr/bin/python
 '''
 Scalar and Block tridiagonalized matrices.
+
+Also, there is some uitlities in this module that will help us build tridiagonal matrices.
+
+A <TridMatrix> and it's derivatives can be parse to csr/coo matrices and array freely.
+Some other matrix types are also supported.
+
+In the following description, we take p -> the block dimension, N -> the matrix dimension and n = N/p.
 '''
 from numpy import *
 from scipy.sparse import csr_matrix,block_diag,coo_matrix,bsr_matrix
@@ -8,18 +15,21 @@ from scipy.sparse import bmat as sbmat
 from scipy.sparse.linalg import inv as sinv
 from numpy.linalg import inv
 from futils.pywraper import ind2ptr,get_tlu_seq,ptr2ind
-from utils import bcast_dot
 from matplotlib.pyplot import *
 import pdb,time
 
 class TridMatrix(object):
     '''
-    Tridiagonal matrix.
+    The base class for tridiagonal matrix with functionality partly realized.
 
     diagonal:
-        the diagonal part.
-    upper:
-        the upper diagonal part.
+        Array of shape (n,p,p) -> block version or (n) -> scalar version,
+        which is the diagonal part of this tridiagonal array.
+    upper/lower:
+        Array of shape (n-1,p,p) -> block version or (n-1) -> scalar version,
+        which is the upper/lower part of this tridiagonal array.
+
+        Leave lower `None` if your'd like it to be hermitian.
     '''
     def __init__(self,diagonal,upper,lower=None):
         self.diagonal=array(diagonal)
@@ -45,56 +55,69 @@ lower -> %s
 
     @property
     def p(self):
-        '''block size.'''
+        '''Block size.'''
         if self.is_scalar:
             return 1
         return self.diagonal.shape[-1]
 
     @property
     def n(self):
-        '''number of blocks'''
+        '''Dimension of matrix in view of blocks'''
         return self.diagonal.shape[0]
 
     @property
     def N(self):
-        '''the dimension of this matrix.'''
+        '''The dimension of this matrix.'''
         return self.p*self.n
 
     @property
     def shape(self):
-        '''the shape of this matrix.'''
+        '''The shape of this matrix.'''
         N=self.N
         return (N,N)
 
     @property
     def is_scalar(self):
-        '''return true if it is a scalar tridiagonal matrix.'''
+        '''Return true if it is a scalar tridiagonal matrix.'''
         return ndim(self.diagonal)==1
 
     @property
     def dtype(self):
-        '''the data type'''
+        '''Get the data type'''
         return self.upper.dtype
 
     def tocoo(self):
-        '''transform to coo_matrix.'''
+        '''Transform to coo_matrix.'''
         raise Exception('Not Implemented!')
 
     def tocsr(self):
-        '''transform to csr_matrix.'''
+        '''Transform to csr_matrix.'''
         raise Exception('Not Implemented!')
 
     def toarray(self):
-        '''transform to an array.'''
+        '''Transform to an array.'''
         raise Exception('Not Implemented!')
 
 
 class ScalarTridMatrix(TridMatrix):
     '''
     Scalar tridiagonal matrix class.
+
+    diagonal:
+        Array of shape (n)
+        which is the diagonal part of this tridiagonal array.
+    upper/lower:
+        Array of shape (n)
+        which is the upper/lower part of this tridiagonal array.
+
+        Leave lower `None` if your'd like it to be hermitian.
     '''
+    def __init__(self,diagonal,upper,lower=None):
+        assert(ndim(diagonal)==1)
+        super(ScalarTridMatrix,self).__init__(diagonal,upper,lower)
+
     def toarray(self):
-        '''transform to array.'''
+        '''Transform to array.'''
         n=self.n
         m=zeros((n,n),dtype=self.upper.dtype)
         fill_diagonal(m,self.diagonal)
@@ -103,7 +126,7 @@ class ScalarTridMatrix(TridMatrix):
         return m
 
     def tocoo(self):
-        '''transform to coo_matrix.'''
+        '''Transform to coo_matrix.'''
         n=self.n
         indx=concatenate([arange(n-1),arange(n),arange(1,n)])
         indy=concatenate([arange(1,n),arange(n),arange(n-1)])
@@ -111,12 +134,12 @@ class ScalarTridMatrix(TridMatrix):
         return coo_matrix((data,(indx,indy)))
 
     def tocsr(self):
-        '''transform to csr_matrix.'''
+        '''Transform to csr_matrix.'''
         return self.tocoo().tocsr()
 
     def toblocktrid(self):
         '''
-        transform to block tridiagonal matrix.
+        Transform to block tridiagonal matrix.
         '''
         return BlockTridMatrix(self.diagonal[:,newaxis,newaxis],self.upper[:,newaxis,newaxis],self.lower[:,newaxis,newaxis])
 
@@ -124,11 +147,23 @@ class ScalarTridMatrix(TridMatrix):
 class BlockTridMatrix(TridMatrix):
     '''
     Scalar tridiagonal matrix class.
+
+    diagonal:
+        Array of shape (n,p,p)
+        which is the diagonal part of this tridiagonal array.
+    upper/lower:
+        Array of shape (n,p,p)
+        which is the upper/lower part of this tridiagonal array.
+
+        Leave lower `None` if your'd like it to be hermitian.
     '''
+    def __init__(self,diagonal,upper,lower=None):
+        assert(ndim(diagonal)==3)
+        super(BlockTridMatrix,self).__init__(diagonal,upper,lower)
 
     def toscalartrid(self):
         '''
-        transform to block tridiagonal matrix.
+        Transform to block tridiagonal matrix.
         '''
         p=self.p
         if p!=1:
@@ -136,7 +171,7 @@ class BlockTridMatrix(TridMatrix):
         return ScalarTridMatrix(self.diagonal[:,0,0],self.upper[:,0,0],self.lower[:,0,0])
 
     def tobsr(self):
-        '''transform to bsr_matrix.'''
+        '''Transform to bsr_matrix.'''
         n=self.n
         p=self.p
         m=ndarray((n,n),dtype='O')
@@ -148,15 +183,15 @@ class BlockTridMatrix(TridMatrix):
         return res
 
     def tocsr(self):
-        '''transform to csr_matrix.'''
+        '''Transform to csr_matrix.'''
         return self.tobsr().tocsr()
 
     def tocoo(self):
-        '''transform to coo_matrix.'''
+        '''Transform to coo_matrix.'''
         return self.tobsr().tocoo()
 
     def toarray(self):
-        '''transform to an array.'''
+        '''Transform to an array.'''
         return self.tobsr().toarray()
 
 
@@ -184,10 +219,16 @@ def arr2trid(arr,p=None):
 
 def sr2trid(mat,p=None):
     '''
-    parse an bsr_matrix/csr_matrix instance to tridiagonal matrix.
+    Parse an bsr_matrix/csr_matrix instance to tridiagonal matrix.
 
+    mat:
+        An csr_matrix/bsr_matrix instance.
     p:
-        the block size, leave None to make it scalar.
+        The block size, leave None to make it scalar.
+
+    *return*:
+        A <ScalarTridMatrix> instance if p is None and mat is of type csr,
+        otherwise, a <BlockTridMatrix> instance.
     '''
     indptr=mat.indptr
     yindices=mat.indices
@@ -220,14 +261,21 @@ def sr2trid(mat,p=None):
 
 def get_trid(n,p=None,fill=None,herm=False):
     '''
-    Generate a random tridiagonal matrix.
+    Generate a tridiagonal matrix.
 
     fill:
-        the filling value, leave None for random numbers.
+        The filling value
+        
+        Leave it None for random numbers.
     p:
-        the block size, leave None to make it scalar.
+        The block size.
+        
+        leave it None to make it scalar.
     herm:
-        hermitian matrix if True.
+        Get a hermitian matrix if True.
+
+    *return*:
+        A <ScalarTridMatrix> instance if p is None, else <BlockTridMatrix> instance
     '''
     if fill is None:
         agen=random.random
@@ -250,7 +298,15 @@ def get_trid(n,p=None,fill=None,herm=False):
 
 def build_sr(ll=None,dl=None,ul=None):
     '''
-    build a bsr or csr matrix by lower/diagonal/upper part of a tridiagonal matrix.
+    Build a bsr or csr matrix by lower/diagonal/upper part of a tridiagonal matrix.
+
+    ll/dl/ul:
+        The lower/diagonal/upper part of tridiagonal matrix.
+
+        Leave None to make any of them zeros(no all of them).
+
+    *return*:
+        a csr_matrix instance for scalar version, else a bsr_matrix instance.
     '''
     nzarr=None
     for i,il in enumerate([ll,ul,dl]):

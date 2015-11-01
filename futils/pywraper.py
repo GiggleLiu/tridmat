@@ -28,8 +28,6 @@ def ind2ptr(inds,N):
     '''
     return fcsr_ptrindices(inds,N+1)
 
-
-
 def get_tlu_seq(al,bl,cl,which=None):
     '''
     get the sequences of twisted LU decomposition for tridiagonal block matrix.

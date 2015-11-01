@@ -102,7 +102,7 @@ def test_tLU(n,p):
 
 
 if __name__=='__main__':
-    #test_lu(500,None)
-    #test_inv(200,2)
+    test_lu(500,2)
+    test_inv(200,None)
     test_dataparse()
-    #test_tLU(200,None)
+    test_tLU(200,2)

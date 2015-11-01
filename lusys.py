@@ -1,6 +1,8 @@
 #!/usr/bin/python
 '''
 The LU Decomposition system for tridiagonal matrix.
+
+In the following description, we use the convention that p -> the block dimension, N -> the matrix dimension and n = N/p.
 '''
 from numpy import *
 from numpy.linalg import inv
@@ -12,12 +14,12 @@ import pdb,time
 
 class TLUSystem(object):
     '''
-    lu/ul decomposition matrix generator class.
+    LU/UL/LDU/UDL decomposition matrix generator class for a general tridiagonal matrix.
 
     ll/ul/hl/invhl:
-        the lower part of L, the upper part of U, the diagonal part of left matrix and it's inverse.
+        The lower part of L/the upper part of U/the diagonal part of left matrix and it's inverse.
     order:
-        `LU` or `UL`
+        'LU'/'UL'/'LDU' or 'UDL', defining the multiplying order to recover the original matrix.
     '''
     def __init__(self,ll,ul,hl,invhl,order):
         assert(order in ['LU','UL','LDU','UDL'])
@@ -29,17 +31,17 @@ class TLUSystem(object):
 
     @property
     def n(self):
-        '''size with respect to block'''
+        '''Size with respect to block'''
         return len(self.hl)
 
     @property
     def p(self):
-        '''block size.'''
+        '''Block size.'''
         return 1 if self.is_scalar else self.hl.shape[-1]
 
     @property
     def is_scalar(self):
-        '''return True if is scalar.'''
+        '''True if it is functionning as a scalar version.'''
         return ndim(self.hl)==1
 
     @property
@@ -75,7 +77,7 @@ class TLUSystem(object):
     @property
     def D(self):
         '''
-        The diagonal part of LDU or UDL decomposition.
+        The diagonal matrix in LDU or UDL decomposition.
         '''
         if self.order=='LU' or self.order=='UL':
             return None
