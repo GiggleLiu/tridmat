@@ -115,7 +115,7 @@ class Tester(object):
 
 class TestParse(object):
     def __init__(self):
-        n,p=500,2
+        n,p=500,3
         self.n=n
         self.p=p
         self.btrid=BlockTridMatrix(diagonal=random.random([n,p,p]),\

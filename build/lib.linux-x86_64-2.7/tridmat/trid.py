@@ -232,18 +232,19 @@ def sr2trid(mat,p=None):
         A <ScalarTridMatrix> instance if p is None and mat is of type csr,
         otherwise, a <BlockTridMatrix> instance.
     '''
-    if p is not None:
-        if issparse(mat):
-            if p is not None:
-                if not isinstance(mat,bsr_matrix):
-                    mat=mat.tobsr((p,p))
-                else:
-                    assert(mat.blocksize[0]==p)
+    if issparse(mat):
+        if p is not None:
+            if not isinstance(mat,bsr_matrix):
+                mat=mat.tobsr((p,p))
             else:
-                if isinstance(mat,bsr_matrix):
-                    p=mat.blocksize[0]
-                elif not isinstance(mat,csr_matrix):
-                    mat=mat.tocsr()
+                assert(mat.blocksize[0]==p)
+        else:
+            if isinstance(mat,bsr_matrix):
+                p=mat.blocksize[0]
+            elif not isinstance(mat,csr_matrix):
+                mat=mat.tocsr()
+    else:
+        raise Exception('Sparse Matrix is required!')
     if p is not None:
         n=mat.shape[0]/p
         diagonal=zeros([n,p,p],dtype=mat.dtype)
